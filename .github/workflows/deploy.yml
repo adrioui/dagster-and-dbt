@@ -1,11 +1,13 @@
-name: Serverless Branch Deployments
+name: Serverless Prod Deployment
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
+  push:
+    branches:
+      - "main"
+      - "master"
 
 concurrency:
   # Cancel in-progress deploys to same branch
-  group: ${{ github.ref }}/branch_deployments
+  group: ${{ github.ref }}/deploy
   cancel-in-progress: true
 env:
   DAGSTER_CLOUD_URL: "http://jamalian.dagster.cloud"
@@ -39,15 +41,6 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           path: project-repo
-      
-      - name: Prepare Python Executable Deploy
-        if: steps.prerun.outputs.result == 'pex-deploy'
-        run: |
-          python -m pip install pip --upgrade
-          cd project-repo
-          pip install . --upgrade --upgrade-strategy eager
-          dagster-dbt project prepare-and-package --file dagster_university/project.py
-        shell: bash
 
       - name: Python Executable Deploy
         if: steps.prerun.outputs.result == 'pex-deploy'
@@ -74,7 +67,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
       - name: Build and deploy to Dagster Cloud serverless
-        uses: dagster-io/dagster-cloud-action/actions/serverless_branch_deploy@v0.1
+        uses: dagster-io/dagster-cloud-action/actions/serverless_prod_deploy@v0.1
         with:
           dagster_cloud_api_token: ${{ secrets.DAGSTER_CLOUD_API_TOKEN }}
           location: ${{ toJson(matrix.location) }}
